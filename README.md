@@ -5,9 +5,9 @@ Each example has its own corresponding README file.
 
 SimData is a tool that generates event data from a simulation of a user-defined scenario. Instead of using a sample set of data that is repetitive and unrealistic, SimData allows you to generate a rich and robust set of events from real-world situations by mimicking how multiple systems work together and affect the performance of your system.
 
-Further SimData documentation can be found on [dev.splunk.com](https://dev.splunk.com/enterprise/downloads).
-
 ## Get started
+
+For details about installing, configuring, and running SimData, see the [Splunk Developer Portal](https://dev.splunk.com/enterprise/docs/dataapps/simdata/).
 
 ### Requirements
 
