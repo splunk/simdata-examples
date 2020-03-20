@@ -1,0 +1,11 @@
+{
+    "default_transport": "Text",
+    "entities": [
+        {
+            "count": 1,
+            "entity_name": "Greeter"
+        }
+    ],
+    "time_unit": "Seconds",
+    "update_interval": 1
+}

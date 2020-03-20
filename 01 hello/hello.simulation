@@ -1,0 +1,11 @@
+event Greeting {
+    required: [text];
+}
+
+entity Greeter {
+    every(5s) {
+        emit Greeting {
+            text: "Hello, World!";
+        }
+    }
+}
