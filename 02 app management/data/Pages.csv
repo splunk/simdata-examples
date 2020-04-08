@@ -1,0 +1,8 @@
+pageName,responseCode,responseText,usesDatabase,pageTime,pctFail
+/home,200,"OK",false,20,0
+/about,200,"OK",false,10,0
+/promo,404,"Not Found",false,10,0
+/listProducts,200,"OK",true,100,3
+/details,200,"OK",true,90,10
+/directions,200,"OK",false,20,2
+/search,200,"OK",true,200,5

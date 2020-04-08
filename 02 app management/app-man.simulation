@@ -1,0 +1,379 @@
+import mockdata Pages;
+import mockdata Query;
+import mockdata SlowQuery;
+
+// Message types
+
+message WebRequest {
+    required: [sessionID, userID, probability, userRef];
+}
+
+message WebResponse {
+    required: [sessionID, code, httpStatus, duration, pageName, renderTime, queryTime];
+}
+
+message DatabaseRequest {
+    required: [sessionID, connectionID, userID, webserverRef, userRef, query, queryCPU, queryDisk, executionTime, pageName, renderTime];
+}
+
+message DatabaseReply {
+    required: [sessionID, connectionID, status, userRef, renderTime, queryTime];
+}
+
+message UpdateDatabaseMetric {
+    required: [cpu, disk];
+}
+
+// Event types
+
+event LogUserRequest {
+    required: [sessionID, userID];
+    template: "{{_time}} userID={{userID}} sent request sessionID={{sessionID}}";
+    source: "user";
+    sourcetype: "user";
+}
+
+event LogWebResponse {
+    required: [sessionID, code, httpStatus, userID, pageName, renderTime, queryTime, webserverName];
+    template: "{{_time}} userID={{userID}} got response code={{code}} from webserverName={{webserverName}} httpStatus='{{httpStatus}}' sessionID={{sessionID}} pageName={{pageName}} renderTime={{renderTime}} queryTime={{queryTime}}";
+    source: "user";
+    sourcetype: "user";
+}
+
+event LogSendDatabaseRequest {
+    required: [sessionID, connectionID, query];
+    template: "{{_time}} Handled incoming Web Request with sessionID={{sessionID}} and sending Database Request with connectionID={{connectionID}} query={{query}}";
+    source: "webserver";
+    sourcetype: "webserver";
+}
+
+event LogDatabaseResponse {
+    required: [connectionID, status];
+    template: "{{_time}} Database Replied with status={{status}} connectionID={{connectionID}}";
+    source: "webserver";
+    sourcetype: "webserver";
+}
+
+event LogDatabaseQuery {
+    required: [name, connectionID, status];
+    template: "{{_time}} {{msg}} server={{name}} connectionID={{connectionID}} cpu_usage={{cpuUsage}} disk_usage={{diskUsage}} query='{{query}}' cpu={{cpu}} disk={{disk}} executionTime={{executionTime}} status={{status}}";
+    source: "database";
+    sourcetype: "database";
+    optional: {
+        msg: "Query is Done.";
+        cpuUsage: 0;
+        diskUsage: 0;
+        query: "NULL";
+        cpu: 0;
+        disk: 0;
+        executionTime: 0;
+    };
+}
+
+// Entity types
+
+entity User {
+    init {
+        id = Random(0, 1000);
+    }
+    every(Random(500, 2000) ms) {
+        var sessionID = Guid();
+        send WebRequest {
+            userRef: self;
+            sessionID: sessionID;
+            userID: id;
+            probability: Random(0, 100); // Determines which HTTP status code we return
+        }
+        emit LogUserRequest {
+            sessionID: sessionID;
+            userID: id;
+        }
+    }
+    on WebResponse {
+        emit LogWebResponse {
+            code: message.code;
+            httpStatus: message.httpStatus;
+            userID: id;
+            sessionID: message.sessionID;
+            pageName: message.pageName;
+            queryTime: message.queryTime;
+            renderTime: message.renderTime;
+            webserverName: message.webserverName;
+        }
+    }
+}
+
+entity WebServer {
+    init {
+        serverUtilization = 0;
+        serverCapacity = 100;
+        name = "webserver" + Random(1, 100) + ".splunk.example";
+        useSlowQuery = false;
+    }
+    on WebRequest {
+        serverUtilization = serverUtilization + 1;
+        var page = mockdata<Pages>;
+        var renderTime = (page::pageTime * Random(0.9, 1.1)) + (page::pageTime * (serverUtilization / serverCapacity));
+        if serverUtilization > serverCapacity {
+            send message.userRef WebResponse  in (1ms) {
+                sessionID: message.sessionID;
+                pageName: page::pageName;
+                duration: 1;
+                renderTime: 1;
+                queryTime: 0;
+                code: 503;
+                httpStatus: "Service Unavailable";
+                webserverName: name;
+            }
+            serverUtilization = serverUtilization - 1;
+        }
+        else {
+            if page::usesDatabase {
+                var connectionID = Guid();
+                var query = mockdata<Query>;
+                if useSlowQuery {
+                    query = mockdata<SlowQuery>;
+                }
+
+                send DatabaseRequest in (page::pageTime ms) {
+                    sessionID: message.sessionID;
+                    connectionID: connectionID;
+                    userID: message.userID;
+                    userRef: message.userRef;
+                    webserverRef: self;
+                    renderTime: renderTime;
+                    query: query;
+                    pageName: page::pageName;
+                }
+                emit LogSendDatabaseRequest {
+                    sessionID: message.sessionID;
+                    connectionID: connectionID;
+                    query: query::query;
+                }
+            }
+            else {
+                // Transient errors
+                serverUtilization = serverUtilization - 1;
+               
+                if message.probability < 2 {
+                    send message.userRef WebResponse in (page::pageTime ms) {
+                        sessionID: message.sessionID;
+                        duration: page::pageTime;
+                        pageName: page::pageName;
+                        renderTime: renderTime;
+                        queryTime: 0;
+                        code: 404;
+                        httpStatus: "Not Found";
+                        webserverName: name;
+                    }
+                } elif message.probability < 4 {
+                    send message.userRef WebResponse in (page::pageTime ms) {
+                        sessionID: message.sessionID;
+                        duration: page::pageTime;
+                        pageName: page::pageName;
+                        renderTime: renderTime;
+                        queryTime: 0;
+                        code: 400;
+                        httpStatus: "Bad Request";
+                        webserverName: name;
+                    }
+                } elif message.probability < 6 {
+                    send message.userRef WebResponse in (page::pageTime ms) {
+                        sessionID: message.sessionID;
+                        duration: page::pageTime;
+                        pageName: page::pageName;
+                        renderTime: renderTime;
+                        queryTime: 0;
+                        code: 401;
+                        httpStatus: "Unauthorized";
+                        webserverName: name;
+                    }
+                } else {
+                    send message.userRef WebResponse in (page::pageTime ms) {
+                        sessionID: message.sessionID;
+                        duration: page::pageTime;
+                        pageName: page::pageName;
+                        renderTime: renderTime;
+                        queryTime: 0;
+                        code: page::responseCode;
+                        httpStatus: page::responseText;
+                        webserverName: name;
+                    }
+                }
+            }
+        }
+    }
+    on DatabaseReply {
+        serverUtilization = serverUtilization - 1;
+
+        emit LogDatabaseResponse {
+            connectionID: message.connectionID;
+            status: message.status;
+        }
+        if message.status == "running" {
+            send message.userRef WebResponse {
+                code: 200;
+                httpStatus: "OK";
+                sessionID: message.sessionID;
+                pageName: message.pageName;
+                queryTime: message.queryTime;
+                renderTime: message.renderTime;
+                webserverName: name;
+            }
+        }
+        if message.status == "I/O_failure" {
+            send message.userRef WebResponse {
+                code: 503;
+                httpStatus: "Service Unavailable";
+                sessionID: message.sessionID;
+                pageName: message.pageName;
+                queryTime: message.queryTime;
+                renderTime: message.renderTime;
+                webserverName: name;
+            }
+        }
+        if message.status == "down" {
+            send message.userRef WebResponse {
+                code: 504;
+                httpStatus: "Gateway Timeout";
+                sessionID: message.sessionID;
+                pageName: message.pageName;
+                queryTime: message.queryTime;
+                renderTime: message.renderTime;
+                webserverName: name;
+            }
+        }
+    }
+}
+
+entity Database {
+    init {
+        alive = true;
+        cpuUsage = 0;
+        diskUsage = 0;
+        downTick = 0;
+        maxDownTicks = Random(5, 10);
+        maxCPU = 100;
+        maxDisk = 80;
+        threshold = 70;
+        count = 0;
+        id = "db"; // Initialized in the scene file
+        databaseStatus = "";
+        databaseDown = false;
+   }
+
+   on UpdateDatabaseMetric {
+        cpuUsage = cpuUsage - message.cpu;
+        diskUsage = diskUsage - message.disk;
+
+        metric {
+            name: "cpu.usage";
+            value: cpuUsage;
+            unit: "%";
+        }
+
+        metric {
+            name: "disk.usage";
+            value: diskUsage;
+            unit: "%";
+        }
+   }
+
+   on DatabaseRequest {
+        count = count + 1;
+        databaseStatus = "running";
+        var queryStruct = message.query;
+        if databaseDown {
+            alive = false;
+        } else {
+            alive = true;
+        }
+
+        if alive {
+            var currCPU = queryStruct::cpu;
+            currCPU = currCPU * 100 / maxCPU; //normalize the data
+            cpuUsage = cpuUsage + currCPU;
+
+            var currDisk = queryStruct::disk;
+            currDisk = currDisk * 100 / maxDisk; //normalize the data
+            diskUsage = diskUsage + currDisk;
+
+            if cpuUsage > threshold  {
+                databaseStatus = "WARNING:High_CPU_usage";
+                if cpuUsage > 100 {
+                    alive = false;
+                }
+            }
+
+            if diskUsage > threshold {
+                databaseStatus = "WARNING:Disk_full";
+                if diskUsage > 100 {
+                    alive = false;
+                }
+            }
+
+            if Random(1,1000) > 995 { // 99.5% percent success rate on IO
+                databaseStatus = "I/O_failure";
+            }
+
+            send message.webserverRef DatabaseReply in (queryStruct::executionTime ms) {
+                sessionID: message.sessionID;
+                connectionID: message.connectionID;
+                status: databaseStatus;
+                queryTime: queryStruct::executionTime;
+                renderTime: message.renderTime;
+                pageName: message.pageName;
+                webserverName: message.webserverRef;
+                userRef: message.userRef;
+            }
+
+            var queryStruct = message.query;
+            emit LogDatabaseQuery {
+                name: id;
+                connectionID: message.connectionID;
+                cpuUsage: cpuUsage;
+                diskUsage: diskUsage;
+                query: queryStruct::query;
+                cpu: queryStruct::cpu;
+                disk: queryStruct::disk;
+                executionTime: queryStruct::executionTime;
+                status: databaseStatus;
+            }
+
+            var currExetime = queryStruct::executionTime;
+            currExetime = currExetime / 3;
+            send self UpdateDatabaseMetric in (currExetime ms){
+                cpu: currCPU;
+                disk: currDisk;
+            }
+        }
+        else {
+            databaseStatus = "down";
+            downTick = downTick + 1;
+
+            send message.webserverRef DatabaseReply {
+                sessionID: message.sessionID;
+                connectionID: message.connectionID;
+                status: databaseStatus;
+                userRef: message.userRef;
+                queryTime: 0;
+                renderTime: message.renderTime;
+                pageName: message.pageName;
+                webserverName: message.webserverRef;
+            }
+
+            // Reduce the number of database server down message
+            var queryStruct = message.query;
+            if downTick > 0 {
+                if downTick < Random(1, 4) {
+                    emit LogDatabaseQuery {
+                        name: id;
+                        connectionID: message.connectionID;
+                        msg: "ERROR: Server is down.";
+                        status: databaseStatus;
+                    }
+                }
+            }
+        }
+    }
+}
