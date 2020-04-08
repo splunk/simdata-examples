@@ -1,0 +1,93 @@
+{
+    "default_transport": "SplunkHEC",
+    "entities": [
+        {
+            "count": 10,
+            "entity_name": "User"
+        },
+        {
+            "controls": [
+                {
+                    "max": 100,
+                    "min": 0,
+                    "type": "slider",
+                    "varname": "serverCapacity"
+                },
+                {
+                    "type": "switch",
+                    "varname": "useSlowQuery"
+                }
+            ],
+            "count": 2,
+            "entity_name": "WebServer"
+        },
+        {
+            "controls": [
+                {
+                    "type": "switch",
+                    "varname": "databaseDown"
+                }
+            ],
+            "count": 1,
+            "entity_name": "Database",
+            "initial_state": {
+                "id": "db1.splunk.com"
+            }
+        },
+        {
+            "controls": [
+                {
+                    "type": "switch",
+                    "varname": "databaseDown"
+                }
+            ],
+            "count": 1,
+            "entity_name": "Database",
+            "initial_state": {
+                "id": "db2.splunk.com"
+            }
+        }
+    ],
+    "entity_wirings": [
+        {
+            "filter": null,
+            "from": "User",
+            "message_type": "WebRequest",
+            "to": "WebServer",
+            "wiring_type": "any"
+        },
+        {
+            "filter": null,
+            "from": "WebServer",
+            "message_type": "DatabaseRequest",
+            "to": "Database",
+            "wiring_type": "any"
+        },
+        {
+            "filter": null,
+            "from": "Database",
+            "message_type": "DatabaseReply",
+            "to": "WebServer",
+            "wiring_type": "any"
+        },
+        {
+            "filter": null,
+            "from": "Database",
+            "message_type": "UpdateDatabaseMetric",
+            "to": "Database",
+            "wiring_type": "any"
+        }
+    ],
+    "time_unit": "SECONDS",
+    "transports": [
+        {
+            "config": {
+                "default_index": "simdata",
+                "token": "c4874a0a-056e-4b87-9350-472d2f5fd010",
+                "uri": "https://localhost:8088"
+            },
+            "name": "SplunkHEC"
+        }
+    ],
+    "update_interval": 1
+}
