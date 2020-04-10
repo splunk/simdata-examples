@@ -18,6 +18,10 @@ In `app-man.json`, under the `transports` property there are some placeholder va
 * `token` is the Splunk Enterprise HEC token
 * `default_index` is the default Splunk Enterprise index to send events to
 
+## Setup
+
+This simulation will generate a good amount of data in the index configured in the `app-man.json` file. Just make sure the index exists, and the Splunk HEC token is configured to send data to that index.
+
 ## Running the simulation
 
 ```sh
@@ -30,4 +34,27 @@ Since events are configured to go to `SplunkHEC`, nothing will be printed to the
 
 ```sh
 Starting simulation
+```
+
+### Helpful Splunk searches
+
+The following queries are some examples for finding meaning in the generated data through Splunk searches.
+
+#### HTTP Status Error codes by Webserver
+
+```
+index=[your_index_here] code!=200 | stats count by code, webserverName
+```
+
+#### Timechart of load times by page
+
+```
+index=[your_index_here] source=user pageName=* | eval totalTime = renderTime + queryTime | timechart avg(totalTime) by pageName
+```
+
+
+#### Timechart of database query execution times
+
+```
+index=[your_index_here] source="database" executionTime=* | timechart avg(executionTime) by server
 ```
