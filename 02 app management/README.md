@@ -1,6 +1,6 @@
 # Application Management example
 
-This simulation has CSV files used for mockdata. They are included under the `data` directory here. CSV mockdata files must reside at the same file system path as the simulation file, or the `data` directory at that path.
+This simulation has CSV files used for `mockdata`. They are included under the `data` directory here. CSV `mockdata` files must reside at the same file system path as the simulation file, or the `data` directory at that path.
 
 The application management simulation intends to model a simple web application with 3 entities:
 
