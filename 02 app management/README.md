@@ -10,7 +10,7 @@ The application management simulation intends to model a simple web application 
 
 ## Sending data to Splunk Enterprise HEC
 
-Before using this simulation some configuration needs to be updated.
+Before using this simulation, some configuration files need to be updated.
 
 In `app-man.json`, under the `transports` property there are some placeholder values for the `SplunkHEC` transport.
 
