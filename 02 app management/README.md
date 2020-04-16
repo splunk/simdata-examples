@@ -20,7 +20,7 @@ In `app-man.json`, under the `transports` property, there are some placeholder v
 
 ## Setup
 
-This simulation will generate a good amount of data in the index configured in the `app-man.json` file. Just make sure the index exists, and the Splunk HEC token is configured to send data to that index.
+This simulation will generate data in the index configured in the `app-man.json` file. Make sure the index exists, and the Splunk HEC token is configured to send data to that index.
 
 ## Running the simulation
 
@@ -38,9 +38,9 @@ Starting simulation
 
 ### Helpful Splunk searches
 
-The following queries are some examples for finding meaning in the generated data through Splunk searches.
+The following queries show examples of finding meaningful information in the generated data using Splunk searches.
 
-#### HTTP Status Error codes by Webserver
+#### HTTP status error codes by webserver
 
 ```
 index=[your_index_here] code!=200 | stats count by code, webserverName
