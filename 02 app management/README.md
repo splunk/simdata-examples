@@ -2,7 +2,7 @@
 
 This simulation has CSV files used for `mockdata`. They are included under the `data` directory here. CSV `mockdata` files must reside at the same file system path as the simulation file, or the `data` directory at that path.
 
-The application management simulation intends to model a simple web application with 3 entities:
+The application management simulation intends to model a simple web application with three entities:
 
 * `User` entities sending requests to `WebServer` entities
 * `WebServer` entities receiving requests from `User` entities, and sending/receiving requests to `Database` entities
