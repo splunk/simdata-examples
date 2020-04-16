@@ -362,7 +362,7 @@ entity Database {
                 webserverName: message.webserverRef;
             }
 
-            // Reduce the number of database server down message
+            // Reduce the number of database server down messages
             var queryStruct = message.query;
             if downTick > 0 {
                 if downTick < Random(1, 4) {
