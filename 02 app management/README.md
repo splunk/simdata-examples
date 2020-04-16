@@ -12,7 +12,7 @@ The application management simulation intends to model a simple web application 
 
 Before using this simulation, some configuration files need to be updated.
 
-In `app-man.json`, under the `transports` property there are some placeholder values for the `SplunkHEC` transport.
+In `app-man.json`, under the `transports` property, there are some placeholder values for the `SplunkHEC` transport.
 
 * `uri` is the Splunk Enterprise URI including the HEC port (8088 by default)
 * `token` is the Splunk Enterprise HEC token
